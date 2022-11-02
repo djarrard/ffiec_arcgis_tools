@@ -9,7 +9,7 @@ class Toolbox(object):
         self.alias = "toolbox"
 
         # List of tool classes associated with this toolbox
-        self.tools = [extract_ffiec_columns]
+        self.tools = [extract_ffiec_columns, enrich_portfolio]
 
 
 class Tool(object):
@@ -179,6 +179,136 @@ class extract_ffiec_columns(object):
                                                     field_mapping = fms)
         arcpy.AddMessage("Feature Class exported")
         return
+
+    def postExecute(self, parameters):
+        """This method takes place after outputs are processed and
+        added to the display."""
+        return
+
+class enrich_portfolio(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Enrich Customer Portfolio with FFIEC Data"
+        self.description = "Transfers FFIEC attributes from a census tract layer to customer points based on spatial intersection"
+        self.canRunInBackground = False
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+        ### portfolioLayer param[0] ###
+        portfolioLayer = arcpy.Parameter(
+            displayName = "Portfolio Point Layer",
+            name = "portfolioLayer",
+            datatype = "GPFeatureLayer",
+            parameterType = "Required",
+            direction = "Input")
+        portfolioLayer.filter.list = ["Point"]
+
+        ### tractsLayer param[1] ###
+        tractsLayer = arcpy.Parameter(
+            displayName = "FFIEC Tracts Layer",
+            name = "tractsLayer",
+            datatype = "GPFeatureLayer",
+            parameterType = "Required",
+            direction = "Input")
+        tractsLayer.filter.list = ["Polygon"]
+
+        ### fieldSelectMode param[2] ###
+        fieldSelectMode = arcpy.Parameter(
+            displayName = "Field Selection Mode",
+            name = "fieldSelectMode",
+            datatype = "GPString",
+            parameterType = "Required",
+            direction = "Input")
+
+        fieldSelectMode.filter.type = "ValueList"
+        fieldSelectMode.filter.list = ['Join All Fields from FFIEC Layer', 'Manually Select Fields']
+        fieldSelectMode.value = "Join All Fields from FFIEC Layer"
+
+        ### manualSelect param[3] ###
+        manualSelect = arcpy.Parameter(
+            displayName = "FFIEC Fields to Join",
+            name = "manualSelect",
+            datatype = "Field",
+            parameterType = "Optional",
+            multiValue = True,
+            enabled = False,
+            direction = "Input")
+
+        manualSelect.parameterDependencies = [tractsLayer.name]
+
+        ### resultLayer param[4] ###
+        resultLayer = arcpy.Parameter(
+            displayName = "Output Customer Feature Class",
+            name = "resultLayer",
+            datatype = "GPFeatureLayer",
+            parameterType = "Required",
+            direction = "Output")
+        
+        params = [portfolioLayer,tractsLayer,fieldSelectMode, manualSelect, resultLayer]
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        if parameters[2].value == "Join All Fields from FFIEC Layer":
+            parameters[3].enabled = False
+
+        elif parameters[2].value == "Manually Select Fields":
+            parameters[3].enabled = True
+            
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+
+        parameters[3].clearMessage()
+        
+        portfolio_fields = arcpy.ListFields(parameters[0].valueAsText)
+        portfolio_fields = [field.name for field in portfolio_fields]
+        join_fields = parameters[3].valueAsText
+        join_fields = join_fields.split(';')
+        
+        conflict_flag = False
+        for field in join_fields:
+            if field in portfolio_fields:
+                parameters[3].setErrorMessage(f"The portfolio layer already contains a field with a name that's identical to one you are trying to join from the join layer: {field}")
+
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+
+        target = parameters[0].valueAsText
+        join = parameters[1].valueAsText
+        mode = parameters[2].valueAsText
+        out = parameters[4].valueAsText
+        
+        if mode == "Join All Fields from FFIEC Layer":
+            arcpy.SpatialJoin_analysis(target, join, out)
+
+        elif mode == "Manually Select Fields":
+            joinList = parameters[3].valueAsText
+            joinList = joinList.split(';')
+
+            fieldmappings = arcpy.FieldMappings()
+            fieldmappings.addTable(target)
+
+            for field in joinList:
+                fm = arcpy.FieldMap()
+                arcpy.AddMessage(field)
+                fm.addInputField(join, field)
+                fieldmappings.addFieldMap(fm)
+
+            arcpy.SpatialJoin_analysis(target, join, out,"","", fieldmappings)
+        
+        return
+
 
     def postExecute(self, parameters):
         """This method takes place after outputs are processed and
