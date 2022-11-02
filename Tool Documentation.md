@@ -37,9 +37,11 @@ Use this tool to enrich an existing geocoded customer dataset with variables fro
 Parameter | Description
 -----------| -----------
 Customer Point Layer | The input ArcGIS point layer representing the portfolio you wish to enrich. This input MUST be a point layer. If your customers are not yet geocoded, you will need to [geocode your customer table](https://pro.arcgis.com/en/pro-app/latest/tool-reference/geocoding/geocode-addresses.htm) first.
-FFIEC Tracts Layer | The input tracts layer containing the fields you wish to join. Use the _Build FFIEC Feature Class_ tool to create this layer, and then use the output of that tool as input to this one.
-Field Selection Mode | The input tracts layer containing the fields you wish to join. Use the Build FFIEC Feature Class tool to create this layer, and then use the output of that tool as input to this one.<br><br><ul><li><b>Join All Fields from the FFIEC Layer</b>- this option will join all available fields in the input tracts layer to the customer points.</li><li><b>Manually Select Fields</b> - this option will join all available fields in the input tracts layer to the customer points.</li></ul>
+FFIEC Tracts Layer | The tracts feature class that contains the FFIEC columns and census tract geographies. For best results, use the extracted [FFIEC Census Tracts Layer Package (August 26, 2022 release) Layer Package](https://www.arcgis.com/home/item.html?id=148cb8590c714bcf9e1962ec6a404735) as input.
+Field Selection Mode | The mode by which you want to select which fields from the FFIEC tracts layer to join to the input points.<br><br><ul><li><b>Join All Fields from the FFIEC Layer</b>- this option will join all available fields in the input tracts layer to the customer points.</li><li><b>Manually Select Fields</b> - this option will join all available fields in the input tracts layer to the customer points.</li></ul>
 FFIEC Fields to Join (contextual) | This parameter is only available when the Field Selection Mode parameter is set to "Manually Select Fields". Use this parameter to select the individual fields you wish to join from the tracts layer to the customer layer.
 Output Customer Feature Class | Specify the output location and desired name of the result layer.
 
 ### Requirements and Resources
+
+* FFIEC 2022 Census Tracts Feature Class - https://www.arcgis.com/home/item.html?id=148cb8590c714bcf9e1962ec6a404735
